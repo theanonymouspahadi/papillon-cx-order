@@ -1,4 +1,4 @@
-﻿// Supabase Configuration for Papillon QR Order Client
+// Supabase Configuration for Papillon QR Order Client
 const SUPABASE_URL = 'https://murmuqoaxrkcequliffg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_yUs82QMZ5FOwOfqUT_E7FQ_CNCWR_Nq';
 

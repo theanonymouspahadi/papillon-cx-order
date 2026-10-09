@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================================
  * PAPILLON VEG FINE DINE - QR TABLE ORDERING CLIENT (PRODUCTION RESILIENT)
  * Direct Supabase Realtime synchronization with Staff Operations Portal
