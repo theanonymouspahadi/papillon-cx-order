@@ -1,0 +1,282 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Papillon Veg Fine Dine | Table Ordering</title>
+  <meta name="description" content="Direct QR table menu and ordering system for Papillon Veg Fine Dine. Order starters, mains, sizzlers and desserts directly to the kitchen.">
+  
+  <!-- Favicon & Manifest -->
+  <link rel="icon" type="image/png" href="assets/images/hero.png">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/order.css">
+  
+  <!-- Supabase CDN Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+</head>
+<body>
+  <!-- Ambient Gold Glows -->
+  <div class="ambient-glow glow-top" aria-hidden="true"></div>
+  <div class="ambient-glow glow-bottom" aria-hidden="true"></div>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-block">
+        <div class="pure-veg-badge" title="100% Pure Vegetarian Fine Dine">
+          <span class="veg-icon"></span>
+          <span class="veg-text">PURE VEG</span>
+        </div>
+        <h1 class="brand-title">PAPILLON</h1>
+        <p class="brand-subtitle">FINE DINE & SIZZLERS</p>
+      </div>
+
+      <!-- Table Badge & Status -->
+      <div class="table-badge-wrap">
+        <button id="tableSelectorBtn" class="table-chip" aria-label="Change seated table" onclick="openTableModal()">
+          <span class="table-label">TABLE</span>
+          <span id="currentTableNumber" class="table-number">--</span>
+          <span class="table-edit-icon">✎</span>
+        </button>
+        <div class="kitchen-sync-status" title="Connected to kitchen live ticketing">
+          <span class="status-dot"></span>
+          <span id="kitchenStatusText" class="status-text">Kitchen Live</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main App Content -->
+  <main class="main-content">
+    <!-- Active Table Order Status (Shows if table already has open order) -->
+    <section id="activeTableBanner" class="active-table-banner hidden" aria-live="polite">
+      <div class="banner-inner">
+        <div class="banner-icon-col">
+          <div class="pulse-ring">
+            <span class="chef-icon">👨‍🍳</span>
+          </div>
+        </div>
+        <div class="banner-info-col">
+          <div class="banner-top-row">
+            <span class="banner-tag">ACTIVE KITCHEN TICKET</span>
+            <span id="activeOrderTime" class="banner-time">--:--</span>
+          </div>
+          <p id="activeOrderSummary" class="banner-summary">Kitchen is preparing your order</p>
+          <div class="banner-action-row">
+            <span id="activeOrderTotal" class="banner-total">Running Total: ₹0</span>
+            <button class="btn-text-gold" onclick="openActiveOrderDetails()">View Ticket Details &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Search & Filters Sticky Bar -->
+    <div class="filter-sticky-bar">
+      <!-- Search Input -->
+      <div class="search-box-wrap">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input type="search" id="menuSearchInput" placeholder="Search delicacies, sizzlers, paneer..." aria-label="Search menu dishes">
+        <button id="clearSearchBtn" class="clear-search-btn hidden" aria-label="Clear search" onclick="clearSearch()">&times;</button>
+      </div>
+
+      <!-- Dietary & Special Quick Toggles -->
+      <div class="quick-toggles-row">
+        <label class="toggle-pill" for="jainOnlyToggle">
+          <input type="checkbox" id="jainOnlyToggle" onchange="toggleFilter('jain')">
+          <span class="toggle-indicator"></span>
+          <span class="toggle-label">🌿 Jain Option Only</span>
+        </label>
+
+        <label class="toggle-pill" for="specialOnlyToggle">
+          <input type="checkbox" id="specialOnlyToggle" onchange="toggleFilter('special')">
+          <span class="toggle-indicator"></span>
+          <span class="toggle-label">⭐ Chef's Special</span>
+        </label>
+      </div>
+
+      <!-- Categories Navigation Pills -->
+      <nav class="category-nav" aria-label="Menu categories">
+        <div class="category-scroll" id="categoryScroll">
+          <button class="cat-pill active" data-category="all" onclick="selectCategory('all')">All Delicacies</button>
+          <button class="cat-pill" data-category="today-special" onclick="selectCategory('today-special')">⭐ Chef's Specials</button>
+          <button class="cat-pill" data-category="starters" onclick="selectCategory('starters')">Starters</button>
+          <button class="cat-pill" data-category="soups" onclick="selectCategory('soups')">Soups</button>
+          <button class="cat-pill" data-category="main-indian" onclick="selectCategory('main-indian')">Mains (Indian)</button>
+          <button class="cat-pill" data-category="breads" onclick="selectCategory('breads')">Tandoori Breads</button>
+          <button class="cat-pill" data-category="sizzlers" onclick="selectCategory('sizzlers')">Sizzling Platters</button>
+          <button class="cat-pill" data-category="asian" onclick="selectCategory('asian')">Asian Wok</button>
+          <button class="cat-pill" data-category="italian" onclick="selectCategory('italian')">Italian & Pizzas</button>
+          <button class="cat-pill" data-category="mocktails" onclick="selectCategory('mocktails')">Craft Mocktails</button>
+          <button class="cat-pill" data-category="desserts" onclick="selectCategory('desserts')">Royal Desserts</button>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Active Filter Feedback -->
+    <div id="filterResultMeta" class="filter-result-meta hidden">
+      <span id="filterResultCount">Showing 0 dishes</span>
+      <button class="btn-clear-all" onclick="resetAllFilters()">Reset Filters</button>
+    </div>
+
+    <!-- Dish Grid -->
+    <section class="dishes-container" id="dishesContainer" aria-label="Dishes list">
+      <!-- Dynamic dishes rendered here via JS -->
+      <div class="loading-state">
+        <div class="spinner-gold"></div>
+        <p>Loading curated fine dine menu...</p>
+      </div>
+    </section>
+
+    <!-- Assistance Floating Pill -->
+    <section class="assistance-section">
+      <div class="assistance-card">
+        <span class="assistance-icon">🛎️</span>
+        <div class="assistance-text">
+          <strong>Need assistance at your table?</strong>
+          <p>Our floor captains are right here to assist you.</p>
+        </div>
+        <div class="assistance-buttons">
+          <button class="btn-assist" onclick="callServer('Water')">💧 Water</button>
+          <button class="btn-assist" onclick="callServer('Captain')">🙋 Server</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Floating Sticky Cart Bar (Shown when items in cart) -->
+  <aside id="floatingCartBar" class="floating-cart-bar hidden" aria-label="Cart summary">
+    <div class="cart-bar-inner">
+      <div class="cart-bar-left">
+        <div class="cart-count-badge" id="cartItemCount">0</div>
+        <div class="cart-pricing-col">
+          <span class="cart-total-amount" id="cartTotalAmount">₹0</span>
+          <span class="cart-items-subtext" id="cartItemsSubtext">0 items selected</span>
+        </div>
+      </div>
+      <button class="btn-view-order" onclick="openCartDrawer()">
+        <span>View Order</span>
+        <span class="arrow-icon">&rarr;</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Bottom Drawer: Cart & Order Review -->
+  <div id="cartDrawerOverlay" class="drawer-overlay" onclick="closeCartDrawer()" aria-hidden="true"></div>
+  <aside id="cartDrawer" class="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cartDrawerTitle">
+    <div class="drawer-handle" onclick="closeCartDrawer()"></div>
+    <div class="drawer-header">
+      <div class="drawer-header-left">
+        <h2 id="cartDrawerTitle" class="drawer-title">Review Table Order</h2>
+        <span class="drawer-table-tag" id="drawerTableTag">Table --</span>
+      </div>
+      <button class="drawer-close-btn" onclick="closeCartDrawer()" aria-label="Close cart">&times;</button>
+    </div>
+
+    <div class="drawer-body">
+      <!-- Running table order info (if this is round 2+) -->
+      <div id="drawerRoundNotice" class="drawer-round-notice hidden">
+        <span class="notice-badge">Round 2+ Addition</span>
+        <p>These items will be sent to the kitchen and appended to your table's running bill.</p>
+      </div>
+
+      <!-- Selected Cart Items List -->
+      <div id="cartItemsList" class="cart-items-list">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Order Notes / Kitchen Instructions -->
+      <div class="kitchen-instructions-wrap">
+        <label for="kitchenNotesInput" class="instruction-label">
+          <span>Special Kitchen Notes (Optional)</span>
+        </label>
+        <input type="text" id="kitchenNotesInput" placeholder="e.g., Make Dal mild spicy, serve mocktails first..." maxlength="120">
+      </div>
+
+      <!-- Pricing Summary -->
+      <div class="price-breakdown-card">
+        <div class="price-row">
+          <span>Items Subtotal</span>
+          <span id="drawerSubtotal">₹0</span>
+        </div>
+        <div class="price-row tax-row">
+          <span>GST (5% Pure Veg Restaurant)</span>
+          <span id="drawerGst">₹0</span>
+        </div>
+        <div class="price-row-divider"></div>
+        <div class="price-row total-row">
+          <span>Estimated Total</span>
+          <span id="drawerGrandTotal" class="grand-total-amount">₹0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer Footer Actions -->
+    <div class="drawer-footer">
+      <button id="sendToKitchenBtn" class="btn-send-kitchen" onclick="submitCustomerOrder()">
+        <span class="btn-kitchen-icon">👨‍🍳</span>
+        <span class="btn-kitchen-text">Send Order to Kitchen</span>
+        <span class="btn-kitchen-arrow">&rarr;</span>
+      </button>
+      <button class="btn-cancel-drawer" onclick="closeCartDrawer()">Add More Dishes</button>
+    </div>
+  </aside>
+
+  <!-- Modal: Active Order Ticket Details -->
+  <div id="activeOrderModal" class="modal-overlay hidden" onclick="closeActiveOrderModal(event)">
+    <div class="modal-card modal-ticket">
+      <div class="ticket-header">
+        <div class="ticket-brand">
+          <h3>PAPILLON VEG FINE DINE</h3>
+          <p>Table <span id="ticketTableNum">--</span> • Kitchen Order Ticket</p>
+        </div>
+        <button class="modal-close-btn" onclick="closeActiveOrderModal()">&times;</button>
+      </div>
+      <div class="ticket-body">
+        <div class="ticket-status-pill">
+          <span class="pulse-dot"></span>
+          <span>Order Active in Kitchen</span>
+        </div>
+        <div id="ticketItemsList" class="ticket-items-list">
+          <!-- Filled dynamically -->
+        </div>
+        <div class="ticket-divider"></div>
+        <div class="ticket-total-row">
+          <span>Running Bill Total:</span>
+          <span id="ticketTotalAmount" class="ticket-total-amt">₹0</span>
+        </div>
+        <p class="ticket-footer-note">Want more starters, breads or drinks? You can order anytime from this screen and it will be sent to the kitchen.</p>
+      </div>
+      <div class="ticket-footer">
+        <button class="btn-primary-gold" onclick="closeActiveOrderModal()">+ Order More Dishes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Table Selector (If URL has no ?table=X) -->
+  <div id="tableSelectorModal" class="modal-overlay hidden">
+    <div class="modal-card modal-table-picker">
+      <div class="table-picker-header">
+        <h3>Welcome to Papillon</h3>
+        <p>Please select your seated table number to start ordering:</p>
+      </div>
+      <div class="table-grid" id="tableGrid">
+        <!-- 1 to 12 table buttons -->
+      </div>
+      <p class="table-picker-hint">💡 If you scanned a table QR code, this is selected automatically.</p>
+    </div>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div id="toastContainer" class="toast-container" aria-live="assertive"></div>
+
+  <!-- Scripts -->
+  <script src="js/order.js"></script>
+</body>
+</html>
