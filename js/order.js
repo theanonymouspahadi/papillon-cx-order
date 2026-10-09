@@ -316,7 +316,16 @@ function renderActiveTableBanner() {
     } catch(e) {}
   }
   
-  if (summaryEl) summaryEl.textContent = `${itemCount} dishes cooking in kitchen. Order more dishes anytime!`;
+  const orderStatus = currentTableDbOrder.status || 'open';
+  if (summaryEl) {
+    if (orderStatus === 'ready') {
+      summaryEl.innerHTML = '<span style="color:#10B981; font-weight:700;">🍽️ Your order is ready!</span> Dishes are being served to your table.';
+    } else if (orderStatus === 'cooking') {
+      summaryEl.innerHTML = '<span style="color:#38BDF8; font-weight:700;">🍳 Chef is cooking</span> your order in the kitchen.';
+    } else {
+      summaryEl.textContent = `${itemCount} dishes sent to kitchen. Order more anytime!`;
+    }
+  }
   if (totalEl) totalEl.textContent = `Running Total: ₹${total}`;
   if (timeEl) timeEl.textContent = formattedTime;
   
